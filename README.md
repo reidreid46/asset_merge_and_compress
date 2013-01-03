@@ -18,6 +18,7 @@ How to use
 * Place that file on your webserver (maybe in the same directory that you place your CSS files).
 * Make sure the script is executable (e.g. "chmod +x asset_merge_and_compress.sh").
 * Run the script, calling the "main" function and passing in the path to a CSS file (e.g. "./asset_merge_and_compress.sh main ../css/application.css").
+* Update your the <head> of your pages to point to the compressed files (e.g. "application.css" becomes "application.min.css")
 
 YUI Compressor is released under the YUI BSD License
 ----------------------------------------------------
