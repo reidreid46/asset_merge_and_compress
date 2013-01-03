@@ -1,16 +1,9 @@
 #!/bin/bash
 
-# List the "manifest" CSS files that import other CSS files.
-files[0]='../_stylesheets/application.css'
-files[1]='../_stylesheets/large_screen/application.css'
-files[2]='../_stylesheets/medium_screen/application.css'
-files[3]='../_stylesheets/print/application.css'
-files[4]='../_stylesheets/print/bogus_file.css'
-files[5]='../test.css.rb'
-files[6]='../test.css'
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Set the path to YUI Compressor .jar file
-yui_compressor_path='yuicompressor-2.4.8pre.jar'
+yui_compressor_path="${DIR}/yuicompressor-2.4.8pre.jar"
 
 # Initialize array of messages to display to user
 messages=()
@@ -42,7 +35,9 @@ function display_error_message() {
 # Returns:
 #   echo strings
 function display_messages() {
-  for message in "${messages[@]}"
+  local msgs=( "$@" )
+
+  for message in "${msgs[@]}"
   do
     echo "${message}"
   done
@@ -93,15 +88,9 @@ function get_file_directory() {
   # Check to see if it's just a file in the same directory or if it's a path
   if [[ "${1}" =~ \/ ]] ; then
     local result=`echo "${1}" | sed -E "s/(.*)\/.*/\1/g"`
-
-    # FIXME: Using a glob(?) instead of a bash regex. Not sure how to use negate a bash regex
-    if [[ "${result}" =~ \/.* ]] ; then
-      
-      # local result=`cd ${result}/`
-      local result="${PWD}/${result}/"
-    fi
+    local result="${pwd}${result}/"
   else
-    local result="${PWD}/"
+    local result="${PWD}"
   fi
 
   echo $result
@@ -147,7 +136,8 @@ function is_valid_file() {
 # Returns:
 #   files
 function merge_and_compress_imports() {
-  for filename in "${files[@]}"
+  local f=( "$@" )
+  for filename in "${f[@]}"
     do
 
       is_valid_file "${filename}" # call the function
@@ -158,7 +148,8 @@ function merge_and_compress_imports() {
           local file_directory=`get_file_directory $filename`
           local merged_file=`merge_imports $filename $file_directory`
           local merged_file_path=`echo "${filename}" | sed -E "s/(.*\/.*)\.(.*)/\1\.min\.\2/"`
-          echo "${merged_file}" | java -jar yuicompressor-2.4.8pre.jar --type css -o "${merged_file_path}"
+          local file_extention=`get_file_extention $filename`
+          echo "${merged_file}" | java -jar $yui_compressor_path --type $file_extention -o "${merged_file_path}"
           local message=`display_status_message 0 $filename`
           ;;
         1)
@@ -235,9 +226,15 @@ function merge_imports() {
 
 # The function that runs when script is run.
 function main() {
-  merge_and_compress_imports
-  display_messages
+  local f=( "$@" ) # recreate array from parameter, which is an array
+  merge_and_compress_imports "${f[@]}"
+  display_messages "${messages[@]}"
 }
 
-# Call the main function to get things started
-main
+# This is the parameter that is passed into the script when the script is executed. Assumed that a
+# function name is passed as the first parameter and the other parameters are parameters for that
+# function. E.g.
+# ./asset_merge_and_compress.sh main test_1.css test_2.css
+# ./asset_merge_and_compress.sh main ../spec/asset_merge_and_compress/css/set_1/level_1.css
+$*
+
